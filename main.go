@@ -129,7 +129,7 @@ allowed_ip=0.0.0.0/0`, private_key, peer_public_key, peer_endpoint, keepalive, p
 }
 
 func socks5Routine(conf *ini.File) (func(*netstack.Net), error) {
-	bindAddr := conf.Section("Socks5").Key("bindaddress").String()
+	bindAddr := conf.Section("Socks5").Key("bindaddress").MustString("127.0.0.1:1080")
 
 	routine := func(tnet *netstack.Net) {
 		conf := &socks5.Config{Dial: tnet.DialContext}
