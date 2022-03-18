@@ -178,26 +178,16 @@ func main() {
 		log.Panic(err)
 	}
 
-	routines := [](func(*netstack.Net)){}
-
-	var routine func(*netstack.Net)
-
-	routine, err = socks5Routine(conf)
-
-	if err != nil {
-		log.Panic(err)
-	}
-
-	routines = append(routines, routine)
-
 	tnet, err := startWireguard(setting)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	for _, netRoutine := range routines {
-		go netRoutine(tnet)
+	routine, err := socks5Routine(conf)
+	if err != nil {
+		log.Panic(err)
 	}
+    go routine(tnet)
 
 	select {} // sleep etnerally
 }
