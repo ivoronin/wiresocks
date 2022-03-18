@@ -20,6 +20,8 @@ import (
 	"golang.zx2c4.com/wireguard/tun/netstack"
 )
 
+const default_preshared_key = "0000000000000000000000000000000000000000000000000000000000000000"
+
 type DeviceSetting struct {
 	ipcRequest string
 	dns        []netip.Addr
@@ -68,45 +70,28 @@ func parseIPs(s string) ([]netip.Addr, error) {
 }
 
 func createIPCRequest(conf *ini.File) (*DeviceSetting, error) {
-	root := conf.Section("")
+	iface := conf.Section("Interface")
+	peer := conf.Section("Peer")
 
-	key, err := root.GetKey("peerpublickey")
+	key, err := iface.GetKey("PrivateKey")
 	if err != nil {
 		return nil, err
 	}
-	peerPK, err := parseBase64Key(key.String())
-	if err != nil {
-		return nil, err
-	}
-
-	key, err = root.GetKey("selfsecretkey")
-	if err != nil {
-		return nil, err
-	}
-	selfSK, err := parseBase64Key(key.String())
+	private_key, err := parseBase64Key(key.String())
 	if err != nil {
 		return nil, err
 	}
 
-	key, err = root.GetKey("peerendpoint")
+	key, err = iface.GetKey("Address")
 	if err != nil {
 		return nil, err
 	}
-	peerEndpoint, err := resolveIPPAndPort(key.String())
-	if err != nil {
-		return nil, err
-	}
-
-	key, err = root.GetKey("selfendpoint")
-	if err != nil {
-		return nil, err
-	}
-	selfEndpoint, err := netip.ParseAddr(key.String())
+	addr, err := netip.ParseAddr(key.String())
 	if err != nil {
 		return nil, err
 	}
 
-	key, err = root.GetKey("dns")
+	key, err = iface.GetKey("DNS")
 	if err != nil {
 		return nil, err
 	}
@@ -115,17 +100,35 @@ func createIPCRequest(conf *ini.File) (*DeviceSetting, error) {
 		return nil, err
 	}
 
-	keepAlive := root.Key("keepalive").MustInt64(0)
-	preSharedKey := root.Key("presharedkey").MustString("0000000000000000000000000000000000000000000000000000000000000000")
+	key, err = peer.GetKey("PublicKey")
+	if err != nil {
+		return nil, err
+	}
+	peer_public_key, err := parseBase64Key(key.String())
+	if err != nil {
+		return nil, err
+	}
+
+	key, err = peer.GetKey("Endpoint")
+	if err != nil {
+		return nil, err
+	}
+	peer_endpoint, err := resolveIPPAndPort(key.String())
+	if err != nil {
+		return nil, err
+	}
+
+	keepalive := peer.Key("PersistentKeepalive").MustInt64(0)
+	peer_preshared_key := peer.Key("PresharedKey").MustString(default_preshared_key)
 
 	request := fmt.Sprintf(`private_key=%s
 public_key=%s
 endpoint=%s
 persistent_keepalive_interval=%d
 preshared_key=%s
-allowed_ip=0.0.0.0/0`, selfSK, peerPK, peerEndpoint, keepAlive, preSharedKey)
+allowed_ip=0.0.0.0/0`, private_key, peer_public_key, peer_endpoint, keepalive, peer_preshared_key)
 
-	setting := &DeviceSetting{ipcRequest: request, dns: dns, deviceAddr: &selfEndpoint}
+	setting := &DeviceSetting{ipcRequest: request, dns: dns, deviceAddr: &addr}
 	return setting, nil
 }
 
@@ -187,7 +190,7 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
-    go routine(tnet)
+	go routine(tnet)
 
 	select {} // sleep etnerally
 }
