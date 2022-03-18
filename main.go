@@ -39,17 +39,13 @@ func parseBase64Key(key string) (string, error) {
 	return hex.EncodeToString(decoded), nil
 }
 
-func resolveIP(ip string) (*net.IPAddr, error) {
-	return net.ResolveIPAddr("ip", ip)
-}
-
 func resolveIPPAndPort(addr string) (string, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return "", err
 	}
 
-	ip, err := resolveIP(host)
+	ip, err := net.ResolveIPAddr("ip", host)
 	if err != nil {
 		return "", err
 	}
