@@ -52,9 +52,9 @@ func resolveIPPAndPort(addr string) (string, error) {
 	return net.JoinHostPort(ip.String(), port), nil
 }
 
-func parseIPs(s string) ([]netip.Addr, error) {
+func parseIPs(s []string) ([]netip.Addr, error) {
 	ips := []netip.Addr{}
-	for _, str := range strings.Split(s, ",") {
+	for _, str := range s {
 		str = strings.TrimSpace(str)
 		ip, err := netip.ParseAddr(str)
 		if err != nil {
@@ -91,7 +91,7 @@ func createIPCRequest(conf *ini.File) (*DeviceSetting, error) {
 	if err != nil {
 		return nil, err
 	}
-	dns, err := parseIPs(key.String())
+	dns, err := parseIPs(key.Strings(","))
 	if err != nil {
 		return nil, err
 	}
