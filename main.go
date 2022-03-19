@@ -20,10 +20,10 @@ import (
 	"golang.zx2c4.com/wireguard/tun/netstack"
 )
 
-const default_preshared_key = "0000000000000000000000000000000000000000000000000000000000000000"
-const default_mtu = 1420
-const default_keepalive = 0
-const default_socks_addr = "127.0.0.1:1080"
+const defaultPresharedKey = "0000000000000000000000000000000000000000000000000000000000000000"
+const defaultMtu = 1420
+const defaultKeepalive = 0
+const defaultSocksAddr = "127.0.0.1:1080"
 
 func parseBase64Key(key string) (string, error) {
 	decoded, err := base64.StdEncoding.DecodeString(key)
@@ -70,7 +70,7 @@ func createIPCRequest(conf *ini.File) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	private_key, err := parseBase64Key(key.String())
+	privateKey, err := parseBase64Key(key.String())
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +79,7 @@ func createIPCRequest(conf *ini.File) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	peer_public_key, err := parseBase64Key(key.String())
+	peerPublicKey, err := parseBase64Key(key.String())
 	if err != nil {
 		return "", err
 	}
@@ -88,29 +88,28 @@ func createIPCRequest(conf *ini.File) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	peer_endpoint, err := resolveIPPAndPort(key.String())
+	peerEndpoint, err := resolveIPPAndPort(key.String())
 	if err != nil {
 		return "", err
 	}
 
-	keepalive := peer.Key("PersistentKeepalive").MustInt64(default_keepalive)
-	peer_preshared_key := peer.Key("PresharedKey").MustString(default_preshared_key)
+	keepAlive := peer.Key("PersistentKeepalive").MustInt64(defaultKeepalive)
+	peerPresharedKey := peer.Key("PresharedKey").MustString(defaultPresharedKey)
 
 	request := fmt.Sprintf(`private_key=%s
 public_key=%s
 endpoint=%s
 persistent_keepalive_interval=%d
 preshared_key=%s
-allowed_ip=0.0.0.0/0`, private_key, peer_public_key, peer_endpoint, keepalive, peer_preshared_key)
+allowed_ip=0.0.0.0/0`, privateKey, peerPublicKey, peerEndpoint, keepAlive, peerPresharedKey)
 
 	return request, nil
 }
 
 func startSocks(conf *ini.File, tnet *netstack.Net) error {
-	addr := conf.Section("Socks5").Key("BindAddress").MustString(default_socks_addr)
+	addr := conf.Section("Socks5").Key("BindAddress").MustString(defaultSocksAddr)
 
-	socks_conf := &socks5.Config{Dial: tnet.DialContext}
-	server, err := socks5.New(socks_conf)
+	server, err := socks5.New(&socks5.Config{Dial: tnet.DialContext})
 	if err != nil {
 		return err
 	}
@@ -145,7 +144,7 @@ func startWireguard(conf *ini.File) (*netstack.Net, error) {
 		return nil, err
 	}
 
-	mtu := iface.Key("MTU").MustInt(default_mtu)
+	mtu := iface.Key("MTU").MustInt(defaultMtu)
 
 	tun, tnet, err := netstack.CreateNetTUN([]netip.Addr{addr}, dns, mtu)
 	if err != nil {
