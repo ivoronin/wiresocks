@@ -128,22 +128,20 @@ allowed_ip=0.0.0.0/0`, private_key, peer_public_key, peer_endpoint, keepalive, p
 	return setting, nil
 }
 
-func socks5Routine(conf *ini.File) (func(*netstack.Net), error) {
-	bindAddr := conf.Section("Socks5").Key("bindaddress").MustString("127.0.0.1:1080")
+func startSocks(conf *ini.File, tnet *netstack.Net) error {
+	addr := conf.Section("Socks5").Key("BindAddress").MustString("127.0.0.1:1080")
 
-	routine := func(tnet *netstack.Net) {
-		conf := &socks5.Config{Dial: tnet.DialContext}
-		server, err := socks5.New(conf)
-		if err != nil {
-			log.Panic(err)
-		}
-
-		if err := server.ListenAndServe("tcp", bindAddr); err != nil {
-			log.Panic(err)
-		}
+	socks_conf := &socks5.Config{Dial: tnet.DialContext}
+	server, err := socks5.New(socks_conf)
+	if err != nil {
+		return err
 	}
 
-	return routine, nil
+	if err := server.ListenAndServe("tcp", addr); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func startWireguard(setting *DeviceSetting) (*netstack.Net, error) {
@@ -182,11 +180,8 @@ func main() {
 		log.Panic(err)
 	}
 
-	routine, err := socks5Routine(conf)
+	err = startSocks(conf, tnet)
 	if err != nil {
 		log.Panic(err)
 	}
-	go routine(tnet)
-
-	select {} // sleep etnerally
 }
