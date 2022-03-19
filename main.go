@@ -22,12 +22,6 @@ import (
 
 const default_preshared_key = "0000000000000000000000000000000000000000000000000000000000000000"
 
-type DeviceSetting struct {
-	ipcRequest string
-	dns        []netip.Addr
-	deviceAddr *netip.Addr
-}
-
 func parseBase64Key(key string) (string, error) {
 	decoded, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
@@ -65,53 +59,35 @@ func parseIPs(s []string) ([]netip.Addr, error) {
 	return ips, nil
 }
 
-func createIPCRequest(conf *ini.File) (*DeviceSetting, error) {
+func createIPCRequest(conf *ini.File) (string, error) {
 	iface := conf.Section("Interface")
 	peer := conf.Section("Peer")
 
 	key, err := iface.GetKey("PrivateKey")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	private_key, err := parseBase64Key(key.String())
 	if err != nil {
-		return nil, err
-	}
-
-	key, err = iface.GetKey("Address")
-	if err != nil {
-		return nil, err
-	}
-	addr, err := netip.ParseAddr(key.String())
-	if err != nil {
-		return nil, err
-	}
-
-	key, err = iface.GetKey("DNS")
-	if err != nil {
-		return nil, err
-	}
-	dns, err := parseIPs(key.Strings(","))
-	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	key, err = peer.GetKey("PublicKey")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	peer_public_key, err := parseBase64Key(key.String())
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	key, err = peer.GetKey("Endpoint")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	peer_endpoint, err := resolveIPPAndPort(key.String())
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	keepalive := peer.Key("PersistentKeepalive").MustInt64(0)
@@ -124,8 +100,7 @@ persistent_keepalive_interval=%d
 preshared_key=%s
 allowed_ip=0.0.0.0/0`, private_key, peer_public_key, peer_endpoint, keepalive, peer_preshared_key)
 
-	setting := &DeviceSetting{ipcRequest: request, dns: dns, deviceAddr: &addr}
-	return setting, nil
+	return request, nil
 }
 
 func startSocks(conf *ini.File, tnet *netstack.Net) error {
@@ -144,15 +119,41 @@ func startSocks(conf *ini.File, tnet *netstack.Net) error {
 	return nil
 }
 
-func startWireguard(setting *DeviceSetting) (*netstack.Net, error) {
-	tun, tnet, err := netstack.CreateNetTUN([]netip.Addr{*(setting.deviceAddr)}, setting.dns, 1420)
+func startWireguard(conf *ini.File) (*netstack.Net, error) {
+	iface := conf.Section("Interface")
+
+	key, err := iface.GetKey("Address")
 	if err != nil {
 		return nil, err
 	}
-	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(device.LogLevelVerbose, ""))
-	dev.IpcSet(setting.ipcRequest)
-	err = dev.Up()
+	addr, err := netip.ParseAddr(key.String())
 	if err != nil {
+		return nil, err
+	}
+
+	key, err = iface.GetKey("DNS")
+	if err != nil {
+		return nil, err
+	}
+	dns, err := parseIPs(key.Strings(","))
+	if err != nil {
+		return nil, err
+	}
+
+	tun, tnet, err := netstack.CreateNetTUN([]netip.Addr{addr}, dns, 1420)
+	if err != nil {
+		return nil, err
+	}
+
+	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(device.LogLevelVerbose, ""))
+
+	request, err := createIPCRequest(conf)
+	if err != nil {
+		return nil, err
+	}
+	dev.IpcSet(request)
+
+	if err = dev.Up(); err != nil {
 		return nil, err
 	}
 
@@ -170,12 +171,7 @@ func main() {
 		log.Panic(err)
 	}
 
-	setting, err := createIPCRequest(conf)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	tnet, err := startWireguard(setting)
+	tnet, err := startWireguard(conf)
 	if err != nil {
 		log.Panic(err)
 	}
