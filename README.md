@@ -17,7 +17,7 @@ wiresocks is completely isolated from my network interfaces, also I don't need r
 anything.
 
 # Usage
-`./wiresocks [config file path]`
+`./wiresocks [-v] [config file path]`
 
 # Sample config file
 Wiresocks supports subset of the `wg-quick` file format.
@@ -28,6 +28,7 @@ It requires `Socks5` additional section.
 PrivateKey = uCTIK+56CPyCvwJxmU5dBfuyJvPuSXAq1FzHdnIxe1Q=
 Address = 172.16.31.2
 DNS = 1.1.1.1
+# MTU = 1420
 
 [Peer]
 PublicKey = QP+A67Z2UBrMgvNIdHv8gPel5URWNLS4B3ZQ2hQIZlg=
