@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strings"
 
 	"gopkg.in/ini.v1"
@@ -180,7 +182,14 @@ func main() {
 		return
 	}
 
-	conf, err := ini.InsensitiveLoad(args[0])
+	var cfgSrc interface{}
+	if args[0] == "-" {
+		cfgSrc = bufio.NewReader(os.Stdin)
+	} else {
+		cfgSrc = args[0]
+	}
+
+	conf, err := ini.InsensitiveLoad(cfgSrc)
 	if err != nil {
 		log.Fatal(err)
 	}
