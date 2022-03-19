@@ -113,6 +113,8 @@ func startSocks(conf *ini.File, tnet *netstack.Net) error {
 		return err
 	}
 
+	log.Printf("Starting SOCKS5 proxy at %s", addr)
+
 	if err := server.ListenAndServe("tcp", addr); err != nil {
 		return err
 	}
