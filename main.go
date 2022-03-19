@@ -21,6 +21,7 @@ import (
 )
 
 const default_preshared_key = "0000000000000000000000000000000000000000000000000000000000000000"
+const default_mtu = 1420
 
 func parseBase64Key(key string) (string, error) {
 	decoded, err := base64.StdEncoding.DecodeString(key)
@@ -140,7 +141,9 @@ func startWireguard(conf *ini.File) (*netstack.Net, error) {
 		return nil, err
 	}
 
-	tun, tnet, err := netstack.CreateNetTUN([]netip.Addr{addr}, dns, 1420)
+	mtu := iface.Key("MTU").MustInt(default_mtu)
+
+	tun, tnet, err := netstack.CreateNetTUN([]netip.Addr{addr}, dns, mtu)
 	if err != nil {
 		return nil, err
 	}
