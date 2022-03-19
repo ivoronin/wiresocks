@@ -22,6 +22,8 @@ import (
 
 const default_preshared_key = "0000000000000000000000000000000000000000000000000000000000000000"
 const default_mtu = 1420
+const default_keepalive = 0
+const default_socks_addr = "127.0.0.1:1080"
 
 func parseBase64Key(key string) (string, error) {
 	decoded, err := base64.StdEncoding.DecodeString(key)
@@ -91,7 +93,7 @@ func createIPCRequest(conf *ini.File) (string, error) {
 		return "", err
 	}
 
-	keepalive := peer.Key("PersistentKeepalive").MustInt64(0)
+	keepalive := peer.Key("PersistentKeepalive").MustInt64(default_keepalive)
 	peer_preshared_key := peer.Key("PresharedKey").MustString(default_preshared_key)
 
 	request := fmt.Sprintf(`private_key=%s
@@ -105,7 +107,7 @@ allowed_ip=0.0.0.0/0`, private_key, peer_public_key, peer_endpoint, keepalive, p
 }
 
 func startSocks(conf *ini.File, tnet *netstack.Net) error {
-	addr := conf.Section("Socks5").Key("BindAddress").MustString("127.0.0.1:1080")
+	addr := conf.Section("Socks5").Key("BindAddress").MustString(default_socks_addr)
 
 	socks_conf := &socks5.Config{Dial: tnet.DialContext}
 	server, err := socks5.New(socks_conf)
