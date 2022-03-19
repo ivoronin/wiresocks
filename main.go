@@ -4,10 +4,10 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"strings"
 
 	"gopkg.in/ini.v1"
@@ -123,7 +123,7 @@ func startSocks(conf *ini.File, tnet *netstack.Net) error {
 	return nil
 }
 
-func startWireguard(conf *ini.File) (*netstack.Net, error) {
+func startWireguard(conf *ini.File, verbose bool) (*netstack.Net, error) {
 	iface := conf.Section("Interface")
 
 	key, err := iface.GetKey("Address")
@@ -151,7 +151,11 @@ func startWireguard(conf *ini.File) (*netstack.Net, error) {
 		return nil, err
 	}
 
-	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(device.LogLevelError, ""))
+	logLevel := device.LogLevelError
+	if verbose {
+		logLevel = device.LogLevelVerbose
+	}
+	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(logLevel, ""))
 
 	request, err := createIPCRequest(conf)
 	if err != nil {
@@ -167,17 +171,21 @@ func startWireguard(conf *ini.File) (*netstack.Net, error) {
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Println("Usage: wiresocks [config file path]")
+	verbose := flag.Bool("v", false, "verbose")
+	flag.Parse()
+	args := flag.Args()
+
+	if len(args) != 1 {
+		fmt.Println("Usage: wiresocks [-v] [config file path]")
 		return
 	}
 
-	conf, err := ini.InsensitiveLoad(os.Args[1])
+	conf, err := ini.InsensitiveLoad(args[0])
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tnet, err := startWireguard(conf)
+	tnet, err := startWireguard(conf, *verbose)
 	if err != nil {
 		log.Fatal(err)
 	}
