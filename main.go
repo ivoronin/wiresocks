@@ -171,16 +171,16 @@ func main() {
 
 	conf, err := ini.InsensitiveLoad(os.Args[1])
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 
 	tnet, err := startWireguard(conf)
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 
 	err = startSocks(conf, tnet)
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 }
