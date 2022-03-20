@@ -22,10 +22,11 @@ import (
 	"golang.zx2c4.com/wireguard/tun/netstack"
 )
 
-const defaultPresharedKey = "0000000000000000000000000000000000000000000000000000000000000000"
-const defaultMtu = 1420
-const defaultKeepalive = 0
-const defaultSocksAddr = "127.0.0.1:1080"
+const (
+	defaultMtu       = 1420
+	defaultKeepalive = 0
+	defaultSocksAddr = "127.0.0.1:1080"
+)
 
 func parseBase64Key(key string) (string, error) {
 	decoded, err := base64.StdEncoding.DecodeString(key)
@@ -96,7 +97,7 @@ func createIPCRequest(conf *ini.File) (string, error) {
 	}
 
 	keepAlive := peer.Key("PersistentKeepalive").MustInt64(defaultKeepalive)
-	peerPresharedKey := peer.Key("PresharedKey").MustString(defaultPresharedKey)
+	peerPresharedKey := peer.Key("PresharedKey").MustString(strings.Repeat("0", 64))
 
 	request := fmt.Sprintf(`private_key=%s
 public_key=%s
