@@ -165,7 +165,9 @@ func startWireguard(conf *ini.File, verbose bool) (*netstack.Net, error) {
 	}
 	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(logLevel, ""))
 
-	dev.IpcSet(request)
+	if err = dev.IpcSet(request); err != nil {
+		return nil, err
+	}
 
 	if err = dev.Up(); err != nil {
 		return nil, err
