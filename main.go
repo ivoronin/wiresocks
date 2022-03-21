@@ -149,6 +149,11 @@ func startWireguard(conf *ini.File, verbose bool) (*netstack.Net, error) {
 
 	mtu := iface.Key("MTU").MustInt(defaultMtu)
 
+	request, err := createIPCRequest(conf)
+	if err != nil {
+		return nil, err
+	}
+
 	tun, tnet, err := netstack.CreateNetTUN([]netip.Addr{addr}, dns, mtu)
 	if err != nil {
 		return nil, err
@@ -160,10 +165,6 @@ func startWireguard(conf *ini.File, verbose bool) (*netstack.Net, error) {
 	}
 	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(logLevel, ""))
 
-	request, err := createIPCRequest(conf)
-	if err != nil {
-		return nil, err
-	}
 	dev.IpcSet(request)
 
 	if err = dev.Up(); err != nil {
