@@ -174,22 +174,27 @@ func startWireguard(conf *ini.File, verbose bool) (*netstack.Net, error) {
 	return tnet, nil
 }
 
+func usage() {
+	fmt.Println("Usage: wiresocks [-v] [-l addr:port] <config file path>")
+	flag.PrintDefaults()
+}
+
 func main() {
 	verbose := flag.Bool("v", false, "verbose")
 	socksAddr := flag.String("l", defaultSocksAddr, "SOCKS5 proxy listen address")
+	flag.Usage = usage
 	flag.Parse()
-	args := flag.Args()
 
-	if len(args) != 1 {
-		fmt.Println("Usage: wiresocks [-v] [config file path]")
-		return
+	if flag.NArg() != 1 {
+		usage()
+		os.Exit(1)
 	}
 
 	var cfgSrc interface{}
-	if args[0] == "-" {
+	if flag.Arg(0) == "-" {
 		cfgSrc = bufio.NewReader(os.Stdin)
 	} else {
-		cfgSrc = args[0]
+		cfgSrc = flag.Arg(0)
 	}
 
 	conf, err := ini.InsensitiveLoad(cfgSrc)

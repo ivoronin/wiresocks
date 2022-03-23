@@ -17,7 +17,7 @@ wiresocks is completely isolated from my network interfaces, also I don't need r
 anything.
 
 # Usage
-`./wiresocks [-v] [-l addr:port] [config file path]`
+`./wiresocks [-v] [-l addr:port] <config file path>`
 
 # Sample config file
 Wiresocks supports subset of the `wg-quick` file format.
