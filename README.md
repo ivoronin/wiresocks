@@ -17,11 +17,10 @@ wiresocks is completely isolated from my network interfaces, also I don't need r
 anything.
 
 # Usage
-`./wiresocks [-v] [config file path]`
+`./wiresocks [-v] [-l addr:port] [config file path]`
 
 # Sample config file
 Wiresocks supports subset of the `wg-quick` file format.
-It requires `Socks5` additional section.
 
 ```
 [Interface]
@@ -35,7 +34,4 @@ PublicKey = QP+A67Z2UBrMgvNIdHv8gPel5URWNLS4B3ZQ2hQIZlg=
 Endpoint = 172.16.0.1:53
 # PersistentKeepalive = 25
 # PreSharedKey = UItQuvLsyh50ucXHfjF0bbR4IIpVBd74lwKc8uIPXXs=
-
-[Socks5]
-BindAddress = 127.0.0.1:25344
 ```

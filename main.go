@@ -109,9 +109,7 @@ allowed_ip=0.0.0.0/0`, privateKey, peerPublicKey, peerEndpoint, keepAlive, peerP
 	return request, nil
 }
 
-func startSocks(conf *ini.File, tnet *netstack.Net) error {
-	addr := conf.Section("Socks5").Key("BindAddress").MustString(defaultSocksAddr)
-
+func startSocks(addr string, tnet *netstack.Net) error {
 	server, err := socks5.New(&socks5.Config{Dial: tnet.DialContext})
 	if err != nil {
 		return err
@@ -178,6 +176,7 @@ func startWireguard(conf *ini.File, verbose bool) (*netstack.Net, error) {
 
 func main() {
 	verbose := flag.Bool("v", false, "verbose")
+	socksAddr := flag.String("l", defaultSocksAddr, "SOCKS5 proxy listen address")
 	flag.Parse()
 	args := flag.Args()
 
@@ -203,7 +202,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = startSocks(conf, tnet)
+	err = startSocks(*socksAddr, tnet)
 	if err != nil {
 		log.Fatal(err)
 	}
