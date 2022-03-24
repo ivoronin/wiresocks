@@ -29,9 +29,11 @@ Address = 172.16.31.2
 DNS = 1.1.1.1
 # MTU = 1420
 
+# Only last defined peer will be used
 [Peer]
 PublicKey = QP+A67Z2UBrMgvNIdHv8gPel5URWNLS4B3ZQ2hQIZlg=
 Endpoint = 172.16.0.1:53
 # PersistentKeepalive = 25
 # PreSharedKey = UItQuvLsyh50ucXHfjF0bbR4IIpVBd74lwKc8uIPXXs=
+# AllowedIPs parameter is ignored and is always 0.0.0.0/0, ::0/0
 ```
