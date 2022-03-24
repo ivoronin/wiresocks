@@ -104,6 +104,10 @@ func createIPCRequest(conf *ini.File) (string, error) {
 		return "", err
 	}
 
+	if peer.HasKey("AllowedIPs") {
+		log.Printf("AllowedIPs parameter is ignored and is always 0.0.0.0/0, ::0/0")
+	}
+
 	keepAlive := peer.Key("PersistentKeepalive").MustInt64(defaultKeepalive)
 	peerPresharedKey := peer.Key("PresharedKey").MustString(strings.Repeat("0", 64))
 
@@ -112,7 +116,8 @@ public_key=%s
 endpoint=%s
 persistent_keepalive_interval=%d
 preshared_key=%s
-allowed_ip=0.0.0.0/0`, privateKey, peerPublicKey, peerEndpoint, keepAlive, peerPresharedKey)
+allowed_ip=0.0.0.0/0
+allowed_ip=::0/0`, privateKey, peerPublicKey, peerEndpoint, keepAlive, peerPresharedKey)
 
 	return request, nil
 }
