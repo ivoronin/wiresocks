@@ -52,17 +52,25 @@ func resolveIPPAndPort(addr string) (string, error) {
 	return net.JoinHostPort(ip.String(), port), nil
 }
 
-func parseIPs(s []string) ([]netip.Addr, error) {
-	ips := []netip.Addr{}
+func parseAddrs(s []string, allowPrefix bool) (addrs []netip.Addr, err error) {
+	var addr netip.Addr
 	for _, str := range s {
 		str = strings.TrimSpace(str)
-		ip, err := netip.ParseAddr(str)
-		if err != nil {
-			return nil, err
+		if strings.Contains(str, "/") && allowPrefix {
+			prefix, err := netip.ParsePrefix(str)
+			if err != nil {
+				return nil, err
+			}
+			addr = prefix.Addr()
+		} else {
+			addr, err = netip.ParseAddr(str)
+			if err != nil {
+				return nil, err
+			}
 		}
-		ips = append(ips, ip)
+		addrs = append(addrs, addr)
 	}
-	return ips, nil
+	return addrs, nil
 }
 
 func createIPCRequest(conf *ini.File) (string, error) {
@@ -131,7 +139,7 @@ func startWireguard(conf *ini.File, verbose bool) (*netstack.Net, error) {
 	if err != nil {
 		return nil, err
 	}
-	addr, err := netip.ParseAddr(key.String())
+	addrs, err := parseAddrs(key.Strings(","), true)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +148,7 @@ func startWireguard(conf *ini.File, verbose bool) (*netstack.Net, error) {
 	if err != nil {
 		return nil, err
 	}
-	dns, err := parseIPs(key.Strings(","))
+	dns, err := parseAddrs(key.Strings(","), false)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +160,7 @@ func startWireguard(conf *ini.File, verbose bool) (*netstack.Net, error) {
 		return nil, err
 	}
 
-	tun, tnet, err := netstack.CreateNetTUN([]netip.Addr{addr}, dns, mtu)
+	tun, tnet, err := netstack.CreateNetTUN(addrs, dns, mtu)
 	if err != nil {
 		return nil, err
 	}
