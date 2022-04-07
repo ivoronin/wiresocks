@@ -123,7 +123,10 @@ allowed_ip=::0/0`, privateKey, peerPublicKey, peerEndpoint, keepAlive, peerPresh
 }
 
 func startSocks(addr string, tnet *netstack.Net) error {
-	server, err := socks5.New(&socks5.Config{Dial: tnet.DialContext})
+	server, err := socks5.New(&socks5.Config{
+		Dial:     tnet.DialContext,
+		Resolver: NewTunnelResolver(tnet),
+	})
 	if err != nil {
 		return err
 	}
