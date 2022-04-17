@@ -86,36 +86,36 @@ func parseAddrsOrPrefixes(s []string, parsePrefix bool) (addrs []netip.Addr, err
 func parseInterface(section *ini.Section) (*Interface, error) {
 	iface := new(Interface)
 
-	value, err := section.GetKey("PrivateKey")
+	key, err := section.GetKey("PrivateKey")
 	if err != nil {
 		return nil, err
 	}
-	iface.PrivateKey, err = parseBase64Key(value.String())
+	iface.PrivateKey, err = parseBase64Key(key.String())
 	if err != nil {
 		return nil, fmt.Errorf("error parsing PrivateKey: %w", err)
 	}
 
-	value, err = section.GetKey("Address")
+	key, err = section.GetKey("Address")
 	if err != nil {
 		return nil, err
 	}
-	iface.Address, err = parseAddrsIgnoringPrefix(value.Strings(","))
+	iface.Address, err = parseAddrsIgnoringPrefix(key.Strings(","))
 	if err != nil {
 		return nil, fmt.Errorf("error parsing Address: %w", err)
 	}
 
-	value, err = section.GetKey("DNS")
+	key, err = section.GetKey("DNS")
 	if err != nil {
 		return nil, err
 	}
-	iface.DNS, err = parseAddrs(value.Strings(","))
+	iface.DNS, err = parseAddrs(key.Strings(","))
 	if err != nil {
 		return nil, fmt.Errorf("error parsing DNS: %w", err)
 	}
 
-	value, err = section.GetKey("MTU")
+	key, err = section.GetKey("MTU")
 	if err == nil {
-		iface.MTU, err = value.Int()
+		iface.MTU, err = key.Int()
 		if err != nil {
 			return nil, fmt.Errorf("error parsing MTU: %w", err)
 		}
@@ -127,35 +127,35 @@ func parseInterface(section *ini.Section) (*Interface, error) {
 func parsePeer(section *ini.Section) (*Peer, error) {
 	peer := new(Peer)
 
-	value, err := section.GetKey("PublicKey")
+	key, err := section.GetKey("PublicKey")
 	if err != nil {
 		return nil, err
 	}
-	peer.PublicKey, err = parseBase64Key(value.String())
+	peer.PublicKey, err = parseBase64Key(key.String())
 	if err != nil {
 		return nil, fmt.Errorf("error parsing PublicKey: %w", err)
 	}
 
-	value, err = section.GetKey("Endpoint")
+	key, err = section.GetKey("Endpoint")
 	if err != nil {
 		return nil, err
 	}
-	peer.Endpoint, err = resolveIPPAndPort(value.String())
+	peer.Endpoint, err = resolveIPPAndPort(key.String())
 	if err != nil {
 		return nil, fmt.Errorf("error resolving Endpoint: %w", err)
 	}
 
-	value, err = section.GetKey("PersistentKeepalive")
+	key, err = section.GetKey("PersistentKeepalive")
 	if err == nil {
-		peer.Keepalive, err = value.Int64()
+		peer.Keepalive, err = key.Int64()
 		if err != nil {
 			return nil, fmt.Errorf("error parsing PersistentKeepalive: %w", err)
 		}
 	}
 
-	value, err = section.GetKey("PresharedKey")
+	key, err = section.GetKey("PresharedKey")
 	if err == nil {
-		peer.PresharedKey, err = parseBase64Key(value.String())
+		peer.PresharedKey, err = parseBase64Key(key.String())
 		if err != nil {
 			return nil, fmt.Errorf("error parsing PresharedKey: %w", err)
 		}
