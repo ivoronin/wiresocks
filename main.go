@@ -19,21 +19,11 @@ const (
 	defaultSocksAddr    = "127.0.0.1:1080"
 )
 
-func defaultInt(value int, defaultValue int) int {
-	if value == 0 {
-		return defaultValue
-	}
-	return value
-}
-
-func defaultString(value string, defaultValue string) string {
-	if value == "" {
-		return defaultValue
-	}
-	return value
-}
-
 func createIPCRequest(iface *Interface, peer *Peer) string {
+	psk := defaultPresharedKey
+	if peer.PresharedKey != "" {
+		psk = peer.PresharedKey
+	}
 	return fmt.Sprintf(`private_key=%s
 public_key=%s
 endpoint=%s
@@ -45,7 +35,7 @@ allowed_ip=::0/0`,
 		peer.PublicKey,
 		peer.Endpoint,
 		peer.Keepalive,
-		defaultString(peer.PresharedKey, defaultPresharedKey),
+		psk,
 	)
 }
 
@@ -68,10 +58,14 @@ func startSocks(addr string, tnet *netstack.Net) error {
 }
 
 func startWireguard(conf *Config, verbose bool) (*netstack.Net, error) {
+	mtu := defaultMTU
+	if conf.Interface.MTU != 0 {
+		mtu = conf.Interface.MTU
+	}
 	tun, tnet, err := netstack.CreateNetTUN(
 		conf.Interface.Address,
 		conf.Interface.DNS,
-		defaultInt(conf.Interface.MTU, defaultMTU),
+		mtu,
 	)
 	if err != nil {
 		return nil, err
