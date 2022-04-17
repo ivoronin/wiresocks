@@ -153,7 +153,13 @@ func parsePeer(section *ini.Section) (*Peer, error) {
 		}
 	}
 
-	peer.PresharedKey = section.Key("PresharedKey").String()
+	value, err = section.GetKey("PresharedKey")
+	if err == nil {
+		peer.PresharedKey, err = parseBase64Key(value.String())
+		if err != nil {
+			return nil, fmt.Errorf("error parsing PresharedKey: %w", err)
+		}
+	}
 
 	return peer, nil
 }
