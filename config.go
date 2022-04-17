@@ -177,7 +177,7 @@ func NewConfigFromWgQuick(path string) (*Config, error) {
 		return nil, err
 	}
 	if len(ifaceSections) != 1 {
-		return nil, fmt.Errorf("Configuration file must include one (and only one) interface section")
+		return nil, fmt.Errorf("configuration file must include one (and only one) interface section")
 	}
 	conf.Interface, err = parseInterface(ifaceSections[0])
 	if err != nil {
@@ -189,7 +189,7 @@ func NewConfigFromWgQuick(path string) (*Config, error) {
 		return nil, err
 	}
 	if len(peerSections) == 0 {
-		return nil, fmt.Errorf("Configuration file must include at least one peer section")
+		return nil, fmt.Errorf("configuration file must include at least one peer section")
 	}
 
 	conf.Peers = make([]*Peer, len(peerSections))
