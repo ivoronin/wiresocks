@@ -88,7 +88,7 @@ func parseInterface(section *ini.Section) (*Interface, error) {
 
 	value, err := section.GetKey("PrivateKey")
 	if err != nil {
-		return nil, fmt.Errorf("Interface required parameter PrivateKey is missing")
+		return nil, err
 	}
 	iface.PrivateKey, err = parseBase64Key(value.String())
 	if err != nil {
@@ -97,7 +97,7 @@ func parseInterface(section *ini.Section) (*Interface, error) {
 
 	value, err = section.GetKey("Address")
 	if err != nil {
-		return nil, fmt.Errorf("Interface required parameter Address is missing")
+		return nil, err
 	}
 	iface.Address, err = parseAddrsWithoutPrefix(value.Strings(","))
 	if err != nil {
@@ -106,7 +106,7 @@ func parseInterface(section *ini.Section) (*Interface, error) {
 
 	value, err = section.GetKey("DNS")
 	if err != nil {
-		return nil, fmt.Errorf("Interface required parameter DNS is missing")
+		return nil, err
 	}
 	iface.DNS, err = parseAddrs(value.Strings(","))
 	if err != nil {
@@ -129,7 +129,7 @@ func parsePeer(section *ini.Section) (*Peer, error) {
 
 	value, err := section.GetKey("PublicKey")
 	if err != nil {
-		return nil, fmt.Errorf("Peer required parameter PublicKey is missing")
+		return nil, err
 	}
 	peer.PublicKey, err = parseBase64Key(value.String())
 	if err != nil {
@@ -138,7 +138,7 @@ func parsePeer(section *ini.Section) (*Peer, error) {
 
 	value, err = section.GetKey("Endpoint")
 	if err != nil {
-		return nil, fmt.Errorf("Peer required parameter Endpoint is missing")
+		return nil, err
 	}
 	peer.Endpoint, err = resolveIPPAndPort(value.String())
 	if err != nil {
