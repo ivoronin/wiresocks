@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"gopkg.in/ini.v1"
 	"net"
@@ -88,32 +89,38 @@ func parseInterface(section *ini.Section) (*Interface, error) {
 
 	value, err := section.GetKey("PrivateKey")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting PrivateKey: %w", err)
 	}
 	iface.PrivateKey, err = parseBase64Key(value.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing PrivateKey: %w", err)
 	}
 
 	value, err = section.GetKey("Address")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting Address: %w", err)
 	}
 	iface.Address, err = parseAddrsWithoutPrefix(value.Strings(","))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing Address: %w", err)
 	}
 
 	value, err = section.GetKey("DNS")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting DNS: %w", err)
 	}
 	iface.DNS, err = parseAddrs(value.Strings(","))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing DNS: %w", err)
 	}
 
-	iface.MTU = section.Key("MTU").MustInt(0)
+	value, err = section.GetKey("MTU")
+	if err == nil {
+		iface.MTU, err = value.Int()
+		if err != nil {
+			return nil, fmt.Errorf("error parsing MTU: %w", err)
+		}
+	}
 
 	return iface, nil
 }
@@ -123,25 +130,28 @@ func parsePeer(section *ini.Section) (*Peer, error) {
 
 	value, err := section.GetKey("PublicKey")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting PublicKey: %w", err)
 	}
 	peer.PublicKey, err = parseBase64Key(value.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing PublicKey: %w", err)
 	}
 
 	value, err = section.GetKey("Endpoint")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting Endpoint: %w", err)
 	}
 	peer.Endpoint, err = resolveIPPAndPort(value.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error resolving Endpoint: %w", err)
 	}
 
-	peer.Keepalive, err = section.Key("PersistentKeepalive").Int64()
-	if err != nil {
-		return nil, err
+	value, err = section.GetKey("PersistentKeepalive")
+	if err == nil {
+		peer.Keepalive, err = value.Int64()
+		if err != nil {
+			return nil, fmt.Errorf("error parsing PersistentKeepalive: %w", err)
+		}
 	}
 
 	peer.PresharedKey = section.Key("PresharedKey").String()
