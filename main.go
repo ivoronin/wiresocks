@@ -1,19 +1,10 @@
 package main
 
 import (
-	"bufio"
-	"encoding/base64"
-	"encoding/hex"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
-	"net"
-	"net/netip"
 	"os"
-	"strings"
-
-	"gopkg.in/ini.v1"
 
 	"github.com/armon/go-socks5"
 
@@ -23,103 +14,39 @@ import (
 )
 
 const (
-	defaultMtu       = 1420
-	defaultKeepalive = 0
-	defaultSocksAddr = "127.0.0.1:1080"
+	defaultMTU          = 1420
+	defaultPresharedKey = "0000000000000000000000000000000000000000000000000000000000000000"
+	defaultSocksAddr    = "127.0.0.1:1080"
 )
 
-func parseBase64Key(key string) (string, error) {
-	decoded, err := base64.StdEncoding.DecodeString(key)
-	if err != nil {
-		return "", errors.New("invalid base64 string")
+func defaultInt(value int, defaultValue int) int {
+	if value == 0 {
+		return defaultValue
 	}
-	if len(decoded) != 32 {
-		return "", errors.New("key should be 32 bytes")
-	}
-	return hex.EncodeToString(decoded), nil
+	return value
 }
 
-func resolveIPPAndPort(addr string) (string, error) {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return "", err
+func defaultString(value string, defaultValue string) string {
+	if value == "" {
+		return defaultValue
 	}
-
-	ip, err := net.ResolveIPAddr("ip", host)
-	if err != nil {
-		return "", err
-	}
-	return net.JoinHostPort(ip.String(), port), nil
+	return value
 }
 
-func parseAddrs(s []string, allowPrefix bool) (addrs []netip.Addr, err error) {
-	var addr netip.Addr
-	for _, str := range s {
-		str = strings.TrimSpace(str)
-		if strings.Contains(str, "/") && allowPrefix {
-			prefix, err := netip.ParsePrefix(str)
-			if err != nil {
-				return nil, err
-			}
-			addr = prefix.Addr()
-		} else {
-			addr, err = netip.ParseAddr(str)
-			if err != nil {
-				return nil, err
-			}
-		}
-		addrs = append(addrs, addr)
-	}
-	return addrs, nil
-}
-
-func createIPCRequest(conf *ini.File) (string, error) {
-	iface := conf.Section("Interface")
-	peer := conf.Section("Peer")
-
-	key, err := iface.GetKey("PrivateKey")
-	if err != nil {
-		return "", err
-	}
-	privateKey, err := parseBase64Key(key.String())
-	if err != nil {
-		return "", err
-	}
-
-	key, err = peer.GetKey("PublicKey")
-	if err != nil {
-		return "", err
-	}
-	peerPublicKey, err := parseBase64Key(key.String())
-	if err != nil {
-		return "", err
-	}
-
-	key, err = peer.GetKey("Endpoint")
-	if err != nil {
-		return "", err
-	}
-	peerEndpoint, err := resolveIPPAndPort(key.String())
-	if err != nil {
-		return "", err
-	}
-
-	if peer.HasKey("AllowedIPs") {
-		log.Printf("AllowedIPs parameter is ignored and is always 0.0.0.0/0, ::0/0")
-	}
-
-	keepAlive := peer.Key("PersistentKeepalive").MustInt64(defaultKeepalive)
-	peerPresharedKey := peer.Key("PresharedKey").MustString(strings.Repeat("0", 64))
-
-	request := fmt.Sprintf(`private_key=%s
+func createIPCRequest(iface *Interface, peer *Peer) string {
+	return fmt.Sprintf(`private_key=%s
 public_key=%s
 endpoint=%s
 persistent_keepalive_interval=%d
 preshared_key=%s
 allowed_ip=0.0.0.0/0
-allowed_ip=::0/0`, privateKey, peerPublicKey, peerEndpoint, keepAlive, peerPresharedKey)
-
-	return request, nil
+allowed_ip=::0/0`,
+		iface.PrivateKey,
+		peer.PublicKey,
+		peer.Endpoint,
+		peer.Keepalive,
+		defaultString(peer.PresharedKey, defaultPresharedKey),
+	)
 }
 
 func startSocks(addr string, tnet *netstack.Net) error {
@@ -140,35 +67,12 @@ func startSocks(addr string, tnet *netstack.Net) error {
 	return nil
 }
 
-func startWireguard(conf *ini.File, verbose bool) (*netstack.Net, error) {
-	iface := conf.Section("Interface")
-
-	key, err := iface.GetKey("Address")
-	if err != nil {
-		return nil, err
-	}
-	addrs, err := parseAddrs(key.Strings(","), true)
-	if err != nil {
-		return nil, err
-	}
-
-	key, err = iface.GetKey("DNS")
-	if err != nil {
-		return nil, err
-	}
-	dns, err := parseAddrs(key.Strings(","), false)
-	if err != nil {
-		return nil, err
-	}
-
-	mtu := iface.Key("MTU").MustInt(defaultMtu)
-
-	request, err := createIPCRequest(conf)
-	if err != nil {
-		return nil, err
-	}
-
-	tun, tnet, err := netstack.CreateNetTUN(addrs, dns, mtu)
+func startWireguard(conf *Config, verbose bool) (*netstack.Net, error) {
+	tun, tnet, err := netstack.CreateNetTUN(
+		conf.Interface.Address,
+		conf.Interface.DNS,
+		defaultInt(conf.Interface.MTU, defaultMTU),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -179,6 +83,7 @@ func startWireguard(conf *ini.File, verbose bool) (*netstack.Net, error) {
 	}
 	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(logLevel, ""))
 
+	request := createIPCRequest(conf.Interface, conf.Peers[0])
 	if err = dev.IpcSet(request); err != nil {
 		return nil, err
 	}
@@ -206,14 +111,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var cfgSrc interface{}
-	if flag.Arg(0) == "-" {
-		cfgSrc = bufio.NewReader(os.Stdin)
-	} else {
-		cfgSrc = flag.Arg(0)
-	}
-
-	conf, err := ini.InsensitiveLoad(cfgSrc)
+	conf, err := NewConfigFromWgQuick(flag.Arg(0))
 	if err != nil {
 		log.Fatal(err)
 	}
