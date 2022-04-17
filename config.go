@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 	"fmt"
 
 	"gopkg.in/ini.v1"
@@ -34,10 +33,10 @@ type Config struct {
 func parseBase64Key(key string) (string, error) {
 	decoded, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
-		return "", errors.New("invalid base64 string")
+		return "", fmt.Errorf("invalid base64 string")
 	}
 	if len(decoded) != 32 {
-		return "", errors.New("key should be 32 bytes")
+		return "", fmt.Errorf("key should be 32 bytes")
 	}
 	return hex.EncodeToString(decoded), nil
 }
@@ -89,7 +88,7 @@ func parseInterface(section *ini.Section) (*Interface, error) {
 
 	value, err := section.GetKey("PrivateKey")
 	if err != nil {
-		return nil, fmt.Errorf("error getting PrivateKey: %w", err)
+		return nil, fmt.Errorf("Interface required parameter PrivateKey is missing")
 	}
 	iface.PrivateKey, err = parseBase64Key(value.String())
 	if err != nil {
@@ -98,7 +97,7 @@ func parseInterface(section *ini.Section) (*Interface, error) {
 
 	value, err = section.GetKey("Address")
 	if err != nil {
-		return nil, fmt.Errorf("error getting Address: %w", err)
+		return nil, fmt.Errorf("Interface required parameter Address is missing")
 	}
 	iface.Address, err = parseAddrsWithoutPrefix(value.Strings(","))
 	if err != nil {
@@ -107,7 +106,7 @@ func parseInterface(section *ini.Section) (*Interface, error) {
 
 	value, err = section.GetKey("DNS")
 	if err != nil {
-		return nil, fmt.Errorf("error getting DNS: %w", err)
+		return nil, fmt.Errorf("Interface required parameter DNS is missing")
 	}
 	iface.DNS, err = parseAddrs(value.Strings(","))
 	if err != nil {
@@ -130,7 +129,7 @@ func parsePeer(section *ini.Section) (*Peer, error) {
 
 	value, err := section.GetKey("PublicKey")
 	if err != nil {
-		return nil, fmt.Errorf("error getting PublicKey: %w", err)
+		return nil, fmt.Errorf("Peer required parameter PublicKey is missing")
 	}
 	peer.PublicKey, err = parseBase64Key(value.String())
 	if err != nil {
@@ -139,7 +138,7 @@ func parsePeer(section *ini.Section) (*Peer, error) {
 
 	value, err = section.GetKey("Endpoint")
 	if err != nil {
-		return nil, fmt.Errorf("error getting Endpoint: %w", err)
+		return nil, fmt.Errorf("Peer required parameter Endpoint is missing")
 	}
 	peer.Endpoint, err = resolveIPPAndPort(value.String())
 	if err != nil {
@@ -172,7 +171,7 @@ func NewConfigFromWgQuick(path string) (*Config, error) {
 		return nil, err
 	}
 	if len(ifaceSections) != 1 {
-		return nil, errors.New("Configuration file must include one (and only one) interface section")
+		return nil, fmt.Errorf("Configuration file must include one (and only one) interface section")
 	}
 	conf.Interface, err = parseInterface(ifaceSections[0])
 	if err != nil {
@@ -184,7 +183,7 @@ func NewConfigFromWgQuick(path string) (*Config, error) {
 		return nil, err
 	}
 	if len(peerSections) == 0 {
-		return nil, errors.New("Configuration file must include at least one peer section")
+		return nil, fmt.Errorf("Configuration file must include at least one peer section")
 	}
 
 	conf.Peers = make([]*Peer, len(peerSections))
