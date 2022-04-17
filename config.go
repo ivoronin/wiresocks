@@ -54,7 +54,7 @@ func resolveIPPAndPort(addr string) (string, error) {
 	return net.JoinHostPort(ip.String(), port), nil
 }
 
-func parseAddrsWithoutPrefix(s []string) (addrs []netip.Addr, err error) {
+func parseAddrsIgnoringPrefix(s []string) (addrs []netip.Addr, err error) {
 	return parseAddrsOrPrefixes(s, true)
 }
 
@@ -99,7 +99,7 @@ func parseInterface(section *ini.Section) (*Interface, error) {
 	if err != nil {
 		return nil, err
 	}
-	iface.Address, err = parseAddrsWithoutPrefix(value.Strings(","))
+	iface.Address, err = parseAddrsIgnoringPrefix(value.Strings(","))
 	if err != nil {
 		return nil, fmt.Errorf("error parsing Address: %w", err)
 	}
