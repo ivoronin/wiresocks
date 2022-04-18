@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"math/rand"
 	"net"
 	"net/netip"
@@ -31,7 +31,7 @@ func (r TunnelResolver) Resolve(ctx context.Context, name string) (context.Conte
 
 	naddr := len(addrs)
 	if naddr == 0 {
-		return nil, nil, errors.New("no address found for: " + name)
+		return nil, nil, fmt.Errorf("no address found for: %s", name)
 	}
 
 	rand.Shuffle(naddr, func(i, j int) {
